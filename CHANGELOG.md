@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/rfxfxfx/rapcicd/compare/rapcicd-v0.2.0...rapcicd-v0.3.0) (2026-05-26)
+
+
+### ✨ Features
+
+* implement premium cyber HUD grid terrain background shader ([710b657](https://github.com/rfxfxfx/rapcicd/commit/710b657d5656ccc75e35e8c70408a7c9783f1c50))
+* my changes ([7e624cc](https://github.com/rfxfxfx/rapcicd/commit/7e624cccd845016acbb2bc1b0a0ddc91cafee386))
+* test PR preview deployment ([6e24c77](https://github.com/rfxfxfx/rapcicd/commit/6e24c77e972d6329e3e0f9bb3a7a16a35029d2c9))
+
+
+### 🐛 Bug Fixes
+
+* add PR write permissions to deploy workflow ([bbcca31](https://github.com/rfxfxfx/rapcicd/commit/bbcca314d19074d6e86a494fbfcb31b8f919bd42))
+* resolve branch opacity fade and update env badge labels ([7f19c8e](https://github.com/rfxfxfx/rapcicd/commit/7f19c8e9f6fcb5e5de8a1910e5a130b0c1316330))
+
+
+### 🔧 Chores
+
+* enable PR previews for dev and staging branches ([8c56e86](https://github.com/rfxfxfx/rapcicd/commit/8c56e86691ecebd1966d43d7401aa5fc76c6ea21))
+
 ## [0.2.0](https://github.com/rfxfxfx/rapcicd/compare/rapcicd-v0.1.0...rapcicd-v0.2.0) (2026-05-26)
 
 

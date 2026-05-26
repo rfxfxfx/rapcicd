@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      - staging
+      - dev
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
@@ -26,10 +31,46 @@ jobs:
       - name: Build static export
         run: npm run build
 
-      - name: Deploy to Firebase Hosting
+      # ── dev branch → rapcicd-dev.web.app ──────────────────────────────
+      - name: Deploy to Dev
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_RAPCICD }}
           channelId: live
+          target: dev
           projectId: rapcicd-ac398
+
+      # ── staging branch → rapcicd-staging.web.app ──────────────────────
+      - name: Deploy to Staging
+        if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_RAPCICD }}
+          channelId: live
+          target: staging
+          projectId: rapcicd-ac398
+
+      # ── main branch → rapcicd-ac398.web.app (production) ──────────────
+      - name: Deploy to Production
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_RAPCICD }}
+          channelId: live
+          target: production
+          projectId: rapcicd-ac398
+
+      # ── Pull Request → temporary preview URL ──────────────────────────
+      - name: Deploy PR Preview
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_RAPCICD }}
+          target: production
+          projectId: rapcicd-ac398
+          # No channelId = auto-generates a PR-specific preview channel

@@ -1,0 +1,41 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git tag or commit SHA to roll back to (e.g. v1.2.0 or abc1234)'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback to ${{ inputs.ref }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        run: npm run build
+
+      - name: Deploy to Production (rollback)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_RAPCICD }}
+          channelId: live
+          target: production
+          projectId: rapcicd-ac398

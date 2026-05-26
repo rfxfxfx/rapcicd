@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "rapcicd-ac398"
+  },
+  "targets": {
+    "rapcicd-ac398": {
+      "hosting": {
+        "production": ["rapcicd-ac398"],
+        "staging": ["rapcicd-staging"],
+        "dev": ["rapcicd-dev"]
+      }
+    }
   }
 }

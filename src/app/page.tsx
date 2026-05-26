@@ -43,7 +43,7 @@ export default function Home() {
             </div>
 
             <h1 id="hero-title" className="hero-title">
-              Ship fastest with{" "}
+              Ship at warp speed with{" "}
               <span className="gradient-text">Next.js&nbsp;&amp;&nbsp;Firebase</span>
             </h1>
 

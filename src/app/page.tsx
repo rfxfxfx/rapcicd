@@ -99,7 +99,7 @@ export default function Home() {
           </div>
 
           {/* ── Features ── */}
-          <section id="features" className="features" aria-labelledby="features-title">
+          <section id="features" className="features" aria-label="Features">
             <div className="features-heading">
               <h2 id="features-title">
                 Everything you need to{" "}

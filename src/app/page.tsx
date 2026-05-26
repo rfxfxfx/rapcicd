@@ -43,7 +43,7 @@ export default function Home() {
             </div>
 
             <h1 id="hero-title" className="hero-title">
-              Ship faster with{" "}
+              Ship fastest with{" "}
               <span className="gradient-text">Next.js&nbsp;&amp;&nbsp;Firebase</span>
             </h1>
 
@@ -73,8 +73,8 @@ export default function Home() {
                 className="btn-secondary"
               >
                 <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-                  <path d="M5.91 23.5L9.53 6.14a.5.5 0 01.96-.06l3.3 8.02L16.5 9a.5.5 0 01.94.02l2.2 6.18L23.5 4.5a.5.5 0 01.93.18l2.66 18.82a.5.5 0 01-.24.5L16 29.5 5.15 24a.5.5 0 01-.24-.5z" fill="#FFA000"/>
-                  <path d="M16 29.5L26.85 24l-2.66-18.82a.5.5 0 00-.93-.18L19.64 15.2 17.44 9a.5.5 0 00-.94-.02l-2.71 5.1-3.3-8.02a.5.5 0 00-.96.06L5.91 23.5 16 29.5z" fill="#F57C00" opacity=".6"/>
+                  <path d="M5.91 23.5L9.53 6.14a.5.5 0 01.96-.06l3.3 8.02L16.5 9a.5.5 0 01.94.02l2.2 6.18L23.5 4.5a.5.5 0 01.93.18l2.66 18.82a.5.5 0 01-.24.5L16 29.5 5.15 24a.5.5 0 01-.24-.5z" fill="#FFA000" />
+                  <path d="M16 29.5L26.85 24l-2.66-18.82a.5.5 0 00-.93-.18L19.64 15.2 17.44 9a.5.5 0 00-.94-.02l-2.71 5.1-3.3-8.02a.5.5 0 00-.96.06L5.91 23.5 16 29.5z" fill="#F57C00" opacity=".6" />
                 </svg>
                 Firebase Console
               </a>

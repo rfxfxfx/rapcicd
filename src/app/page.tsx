@@ -6,9 +6,286 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [activeNode, setActiveNode] = useState<string | null>(null)
   const [selectedEnv, setSelectedEnv] = useState<'dev' | 'staging' | 'main'>('dev')
   const [envText, setEnvText] = useState('DEV')
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const gl = canvas.getContext('webgl2')
+    if (!gl) {
+      console.warn("WebGL 2 not supported")
+      return
+    }
+
+    const vsSource = `#version 300 es
+    in vec2 position;
+    void main() {
+      gl_Position = vec4(position, 0.0, 1.0);
+    }`
+
+    const fsSource = `#version 300 es
+    precision highp float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_scroll;
+    uniform vec2 u_mouse;
+    out vec4 fragColor;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
+                 mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+    }
+
+    mat3 rotateX(float angle) {
+      float c = cos(angle);
+      float s = sin(angle);
+      return mat3(
+        1.0, 0.0, 0.0,
+        0.0, c,   -s,
+        0.0, s,   c
+      );
+    }
+
+    mat3 rotateY(float angle) {
+      float c = cos(angle);
+      float s = sin(angle);
+      return mat3(
+        c,   0.0, s,
+        0.0, 1.0, 0.0,
+        -s,  0.0, c
+      );
+    }
+
+    float map(vec3 p) {
+      float h = noise(p.xz * 0.6 + vec2(u_time * 0.1, -u_time * 0.08)) * 0.5;
+      h += noise(p.xz * 1.5 - vec2(u_time * 0.05, u_time * 0.1)) * 0.2;
+      
+      vec2 mouseWorld = (u_mouse - 0.5) * 5.0;
+      float distToMouse = length(p.xz - mouseWorld);
+      float mouseWarp = smoothstep(2.2, 0.0, distToMouse) * 0.4 * (sin(u_time * 2.0) * 0.3 + 0.7);
+      
+      float height = h + mouseWarp - 0.65;
+      return p.y - height;
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+      vec2 uvAspect = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+      
+      vec3 ro = vec3(0.0, 0.6, -2.5);
+      vec3 rd = normalize(vec3(uvAspect, 1.1));
+      
+      float rotX = -0.45 + u_scroll * 0.0005 + (u_mouse.y - 0.5) * 0.15;
+      float rotY = u_time * 0.03 + u_scroll * 0.0003 + (u_mouse.x - 0.5) * 0.15;
+      
+      mat3 rotation = rotateX(rotX) * rotateY(rotY);
+      ro = rotation * ro;
+      rd = rotation * rd;
+      
+      float t = 0.0;
+      float maxD = 18.0;
+      bool hit = false;
+      vec3 p = vec3(0.0);
+      
+      for(int i = 0; i < 75; i++) {
+        p = ro + rd * t;
+        float d = map(p);
+        if(d < 0.0005) {
+          hit = true;
+          break;
+        }
+        t += d * 0.75;
+        if(t > maxD) break;
+      }
+      
+      vec3 color = vec3(0.01, 0.01, 0.03);
+      
+      float bgGlow = 1.0 - length(uvAspect);
+      vec3 nebulaColor = mix(vec3(0.03, 0.01, 0.08), vec3(0.01, 0.05, 0.08), uv.x);
+      color += nebulaColor * bgGlow * 0.6;
+      
+      vec3 cyan = vec3(0.02, 0.71, 0.83);
+      vec3 purple = vec3(0.49, 0.23, 0.93);
+      vec3 magenta = vec3(0.93, 0.28, 0.6);
+      
+      if (hit) {
+        vec2 gridScaleMajor = p.xz * 2.2;
+        vec2 gridUVMajor = abs(fract(gridScaleMajor - 0.5) - 0.5) / fwidth(gridScaleMajor);
+        float gridMajor = 1.0 - min(gridUVMajor.x, gridUVMajor.y);
+        gridMajor = smoothstep(0.0, 1.0, gridMajor);
+        
+        vec2 gridScaleMinor = p.xz * 11.0;
+        vec2 gridUVMinor = abs(fract(gridScaleMinor - 0.5) - 0.5) / fwidth(gridScaleMinor);
+        float gridMinor = 1.0 - min(gridUVMinor.x, gridUVMinor.y);
+        gridMinor = smoothstep(0.0, 1.0, gridMinor);
+        
+        vec2 cell = fract(gridScaleMajor);
+        float nodeDot = smoothstep(0.15, 0.0, length(cell - 0.5));
+        
+        float scanWidth = 0.25;
+        float scanPos = sin(u_time * 0.5) * 6.0;
+        float scanWave = smoothstep(scanWidth, 0.0, abs(p.z - scanPos));
+        
+        float stream = smoothstep(0.03, 0.0, abs(fract(p.x * 0.5 + sin(p.z * 0.8 + u_time * 3.0)) - 0.5));
+        stream *= hash(floor(p.xz * 0.5));
+        
+        float depth = clamp(1.0 - (t / maxD), 0.0, 1.0);
+        
+        float colorMix = sin(p.x * 0.5 + u_time * 0.3) * 0.5 + 0.5;
+        vec3 gridColor = mix(purple, cyan, colorMix);
+        
+        vec3 finalGlowColor = mix(gridColor, magenta, scanWave * 0.7);
+        finalGlowColor += cyan * stream * 1.5;
+        
+        float finalHUD = max(gridMajor * 0.45, gridMinor * 0.12);
+        finalHUD = max(finalHUD, nodeDot * 1.8);
+        
+        vec3 terrainColor = finalGlowColor * finalHUD;
+        terrainColor += finalGlowColor * scanWave * 0.12;
+        
+        color = mix(color, terrainColor * depth, depth);
+        color = mix(color, vec3(0.01, 0.01, 0.03), pow(1.0 - depth, 2.0));
+      } else {
+        vec2 starUV = gl_FragCoord.xy / u_resolution.xy;
+        float stars = hash(floor(starUV * 100.0) + floor(u_time * 0.05));
+        if (stars > 0.993) {
+          color += cyan * (sin(u_time * 3.0 + stars * 100.0) * 0.5 + 0.5) * 0.4;
+        }
+      }
+      
+      float grain = hash(uv + vec2(u_time * 0.01));
+      color += vec3(grain) * 0.008;
+      
+      float vignette = uvAspect.x * uvAspect.x + uvAspect.y * uvAspect.y;
+      color *= clamp(1.0 - vignette * 0.35, 0.0, 1.0);
+      
+      fragColor = vec4(color, 1.0);
+    }`
+
+    function compileShader(gl: WebGL2RenderingContext, type: number, source: string) {
+      const shader = gl.createShader(type)
+      if (!shader) return null
+      gl.shaderSource(shader, source)
+      gl.compileShader(shader)
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error("Shader compile error:", gl.getShaderInfoLog(shader))
+        gl.deleteShader(shader)
+        return null
+      }
+      return shader
+    }
+
+    const vs = compileShader(gl, gl.VERTEX_SHADER, vsSource)
+    const fs = compileShader(gl, gl.FRAGMENT_SHADER, fsSource)
+    if (!vs || !fs) return
+
+    const program = gl.createProgram()
+    if (!program) return
+    gl.attachShader(program, vs)
+    gl.attachShader(program, fs)
+    gl.linkProgram(program)
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error("Program link error:", gl.getProgramInfoLog(program))
+      return
+    }
+
+    const timeLoc = gl.getUniformLocation(program, "u_time")
+    const resLoc = gl.getUniformLocation(program, "u_resolution")
+    const scrollLoc = gl.getUniformLocation(program, "u_scroll")
+    const mouseLoc = gl.getUniformLocation(program, "u_mouse")
+
+    const positionAttributeLocation = gl.getAttribLocation(program, "position")
+    const positionBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    const positions = [
+      -1, -1,
+       1, -1,
+      -1,  1,
+      -1,  1,
+       1, -1,
+       1,  1,
+    ]
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW)
+    const vao = gl.createVertexArray()
+    if (!vao) return
+    gl.bindVertexArray(vao)
+    gl.enableVertexAttribArray(positionAttributeLocation)
+    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0)
+
+    let animationFrameId: number
+    let startTime = performance.now()
+    let scrollVal = 0
+    let targetScrollVal = 0
+    let mouseX = 0.5
+    let mouseY = 0.5
+    let targetMouseX = 0.5
+    let targetMouseY = 0.5
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+      gl.viewport(0, 0, canvas.width, canvas.height)
+    }
+    window.addEventListener('resize', handleResize)
+    handleResize()
+
+    const handleScroll = () => {
+      targetScrollVal = window.scrollY
+    }
+    window.addEventListener('scroll', handleScroll)
+
+    const handleMouseMove = (e: MouseEvent) => {
+      targetMouseX = e.clientX / window.innerWidth
+      targetMouseY = 1.0 - (e.clientY / window.innerHeight)
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+
+    const render = (time: number) => {
+      const elapsed = (time - startTime) * 0.001
+      scrollVal += (targetScrollVal - scrollVal) * 0.1
+      mouseX += (targetMouseX - mouseX) * 0.08
+      mouseY += (targetMouseY - mouseY) * 0.08
+
+      gl.clearColor(0, 0, 0, 0)
+      gl.clear(gl.COLOR_BUFFER_BIT)
+
+      gl.useProgram(program)
+      gl.bindVertexArray(vao)
+
+      gl.uniform1f(timeLoc, elapsed)
+      gl.uniform2f(resLoc, canvas.width, canvas.height)
+      gl.uniform1f(scrollLoc, scrollVal)
+      gl.uniform2f(mouseLoc, mouseX, mouseY)
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6)
+
+      animationFrameId = requestAnimationFrame(render)
+    }
+    animationFrameId = requestAnimationFrame(render)
+
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('mousemove', handleMouseMove)
+      gl.deleteProgram(program)
+      gl.deleteShader(vs)
+      gl.deleteShader(fs)
+      gl.deleteBuffer(positionBuffer)
+      gl.deleteVertexArray(vao)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -91,6 +368,9 @@ export default function Home() {
 
   return (
     <div ref={containerRef}>
+      {/* 3D WebGL background (Unicorn Studio style) */}
+      <canvas ref={canvasRef} className="bg-canvas-3d" aria-hidden="true" />
+
       {/* Ambient background blobs */}
       <div className="ambient-wrapper" aria-hidden="true">
         <div className="blob blob-1" />
